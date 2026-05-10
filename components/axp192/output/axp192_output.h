@@ -44,18 +44,19 @@ protected:
     PowerChannel channel_;
 };
 
+// AXP192BinaryOutput extends Component so its setup() is called by the
+// ESPHome scheduler.  This ensures the power channel is enabled synchronously
+// during the boot setup pass — before any I²C peripheral (e.g. touchscreen)
+// that initialises at the same priority and needs the rail to be live.
 class AXP192BinaryOutput : public output::BinaryOutput,
-                            public AXP192OutputBase
+                            public AXP192OutputBase,
+                            public Component
 {
 
 friend class AXP192FloatOutput;
 public:
     void set_voltage(uint16_t voltage) { this->voltage_ = voltage; };
     void set_channel(PowerChannel channel) { this->channel_ = channel; }
-    // Enable the channel immediately during setup so peripherals (e.g. touch
-    // controller) are powered before other priority-0 components initialise.
-    // The binary light's write via schedule_write_() is deferred to loop(),
-    // which is too late for I²C devices that set up at the same priority.
     void setup() override { this->apply_channel(this->channel_, this->voltage_); }
 protected:
     void write_state(bool state) override;

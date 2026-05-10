@@ -19,7 +19,7 @@ CONF_MIN_VOLTAGE = "min_voltage"
 CONF_MAX_VOLTAGE = "max_voltage"
 
 AXP192FloatOutput = axp192_ns.class_("AXP192FloatOutput", output.FloatOutput)
-AXP192BinaryOutput = axp192_ns.class_("AXP192BinaryOutput", output.BinaryOutput)
+AXP192BinaryOutput = axp192_ns.class_("AXP192BinaryOutput", output.BinaryOutput, cg.Component)
 PowerChannel = axp192_ns.enum("PowerChannel", is_class=True)
 
 POWER_CHANNELS = {
@@ -71,6 +71,7 @@ async def to_code(config):
         cg.add(var.set_min_voltage(config[CONF_MIN_VOLTAGE]))
         cg.add(var.set_max_voltage(config[CONF_MAX_VOLTAGE]))
     else:
+        await cg.register_component(var, config)
         cg.add(var.set_channel(config[CONF_CHANNEL]))
         cg.add(var.set_voltage(config[CONF_VOLTAGE]))
     
