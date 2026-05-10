@@ -286,45 +286,50 @@ inline uint16_t AXP192::readRegisterH5L8(uint8_t highReg, uint8_t lowReg)
 }
 
 // GPIO functions
+//
+// GPIO0-2 are push-pull capable: 0x06 = floating/high (external pull-up), 0x05 = low output.
+// GPIO1 is the CHGLED pin and is wired active-low, so its logic is inverted at this level.
+// GPIO3-4 are NMOS open-drain only: 0x00 = NMOS off (external pull-up → HIGH), 0x02 = NMOS on (→ LOW).
 void AXP192::setGpioPin(uint8_t gpio, uint8_t pin_state){
-    //Assumes GPIO with external pullups, active low
-    uint8_t val=0;
+    uint8_t val = 0;
 
     switch (gpio) {
     case 0:
         val = readRegister(XPOWERS_AXP192_GPIO0_MODE);
         if (val == -1) return;
         val &= 0xF8;
-        writeRegister(XPOWERS_AXP192_GPIO0_MODE, val | ((pin_state == 1) ? 0x06 : 0x05)); //Floating Output or Low output
+        writeRegister(XPOWERS_AXP192_GPIO0_MODE, val | (pin_state ? 0x06 : 0x05));
         break;
     case 1:
+        // CHGLED is active-low: drive low to turn LED on, float to turn off
         val = readRegister(XPOWERS_AXP192_GPIO1_MODE);
         if (val == -1) return;
         val &= 0xF8;
-        writeRegister(XPOWERS_AXP192_GPIO1_MODE, val | ((pin_state == 1) ? 0x05 : 0x06)); //Low output (on) or Floating output (off)
+        writeRegister(XPOWERS_AXP192_GPIO1_MODE, val | (pin_state ? 0x05 : 0x06));
         break;
     case 2:
         val = readRegister(XPOWERS_AXP192_GPIO2_MODE);
         if (val == -1) return;
         val &= 0xF8;
-        writeRegister(XPOWERS_AXP192_GPIO2_MODE, val | ((pin_state == 1) ? 0x06 : 0x05)); //Floating Output or Low output
+        writeRegister(XPOWERS_AXP192_GPIO2_MODE, val | (pin_state ? 0x06 : 0x05));
         break;
     case 3:
+        // NMOS open-drain: 0x00 = off (HIGH via pull-up), 0x02 = on (LOW)
         val = readRegister(XPOWERS_AXP192_GPIO3_MODE);
         if (val == -1) return;
         val &= 0xF8;
-        writeRegister(XPOWERS_AXP192_GPIO3_MODE, val | (0x06)); //Floating Output
+        writeRegister(XPOWERS_AXP192_GPIO3_MODE, val | (pin_state ? 0x00 : 0x02));
         break;
     case 4:
+        // NMOS open-drain: 0x00 = off (HIGH via pull-up), 0x02 = on (LOW)
         val = readRegister(XPOWERS_AXP192_GPIO4_MODE);
         if (val == -1) return;
         val &= 0xF8;
-        writeRegister(XPOWERS_AXP192_GPIO4_MODE, val | (0x06)); //Floating Output
+        writeRegister(XPOWERS_AXP192_GPIO4_MODE, val | (pin_state ? 0x00 : 0x02));
         break;
     default:
         break;
     }
-
 }
 
 
