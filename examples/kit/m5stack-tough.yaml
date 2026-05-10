@@ -19,6 +19,9 @@ substitutions:
 esphome:
   name: ${esphome_name}
   friendly_name: ${friendly_name}
+  # AXP192BinaryOutput::setup() now enables each switch channel immediately,
+  # so DLDO3 (touch chip power) is live before the touchscreen driver runs.
+  # No on_boot workaround needed.
 
 esp32:
   board: m5stack-core2
@@ -199,14 +202,17 @@ switch:
 
 # ── Touchscreen ────────────────────────────────────────────────────────────
 
+# NOTE: if the I²C scan shows 0x2E instead of 0x38, change platform to chsc6x,
+# remove the reset_pin block, and drop interrupt_pin to just: GPIO39.
 touchscreen:
   - platform: ft63x6
     id: touch
-    # Reset is wired to AXP192 GPIO4 (NMOS open-drain, pulled high on board)
-    reset_pin:
-      axp192: axp192_pmu
-      number: 4
-      inverted: true   # active-low reset: write true → GPIO4 LOW → assert reset
+    i2c_id: bus_internal
+    # GPIO39 is input-only on ESP32; the board has an external pull-up on INT.
+    interrupt_pin: GPIO39
+    # reset_pin omitted deliberately — see on_boot comment above.
+    # The ft63x6 hard_reset_() has no post-release delay; omitting this pin
+    # makes it a no-op so the chip is never reset mid-init.
     calibration:
       x_min: 0
       x_max: 320
@@ -239,6 +245,13 @@ binary_sensor:
     y_max: 280
     use_raw: true
 
+# ── Font ───────────────────────────────────────────────────────────────────
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_touch
+    size: 16
+
 # ── Display ────────────────────────────────────────────────────────────────
 
 display:
@@ -253,7 +266,19 @@ display:
     data_rate: 40MHz
     invert_colors: true
     id: m5tough_display
-    show_test_card: true
+    update_interval: 50ms
+    lambda: |-
+      it.fill(Color::BLACK);
+      auto touches = id(touch).get_all_touches();
+      if (!touches.empty()) {
+        int16_t x = touches[0].x;
+        int16_t y = touches[0].y;
+        it.filled_circle(x, y, 15, Color(0xE8, 0x40, 0x40));
+        it.circle(x, y, 15, Color::WHITE);
+        it.printf(10, 10, id(font_touch), Color::WHITE, "x=%-3d  y=%-3d", x, y);
+      } else {
+        it.printf(65, 108, id(font_touch), Color(0x66, 0x66, 0x66), "Touch the screen");
+      }
 
 # ── Diagnostics ────────────────────────────────────────────────────────────
 

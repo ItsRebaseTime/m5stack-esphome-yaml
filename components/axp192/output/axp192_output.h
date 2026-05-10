@@ -52,6 +52,11 @@ friend class AXP192FloatOutput;
 public:
     void set_voltage(uint16_t voltage) { this->voltage_ = voltage; };
     void set_channel(PowerChannel channel) { this->channel_ = channel; }
+    // Enable the channel immediately during setup so peripherals (e.g. touch
+    // controller) are powered before other priority-0 components initialise.
+    // The binary light's write via schedule_write_() is deferred to loop(),
+    // which is too late for I²C devices that set up at the same priority.
+    void setup() override { this->apply_channel(this->channel_, this->voltage_); }
 protected:
     void write_state(bool state) override;
 private:
