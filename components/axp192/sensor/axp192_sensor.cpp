@@ -32,12 +32,12 @@ void AXP192Sensor::update() {
     }
 
     if(vbus_voltage_sensor_ != nullptr) {
-        reading = this->parent_->getACINVoltage();
+        reading = this->parent_->getVBUSVoltage();
         vbus_voltage_sensor_->publish_state(reading == 0 ? NAN : reading);
     }
 
     if(vbus_current_sensor_ != nullptr) {
-        reading = this->parent_->getACINCurrent();
+        reading = this->parent_->getVBUSCurrent();
         vbus_current_sensor_->publish_state(reading == 0 ? NAN : reading);
     }
 

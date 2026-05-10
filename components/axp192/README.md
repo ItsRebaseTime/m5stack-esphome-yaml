@@ -2,6 +2,34 @@
 > This feature is based on a community contribution and has been merged to move development forward.
 > Full validation within the official M5Stack ESPHome integration is still in progress, and additional testing across hardware variants is planned.
 
+## Sensor naming — ACIN vs VBUS
+
+The AXP192 has **two separate power inputs**, each with its own ADC channel:
+
+| Sensor key | AXP192 pin | Typical use |
+|---|---|---|
+| `usb_voltage` / `usb_current` | ACIN | 5 V barrel-jack DC input |
+| `vbus_voltage` / `vbus_current` | VBUS | USB-C / Micro-USB input |
+| `usb_present` / `usb_valid` | ACIN | barrel-jack detection |
+| `vbus_present` / `vbus_valid` | VBUS | USB cable detection |
+
+## Supported power channels
+
+All channels listed below can be used with the `axp192` output platform (types `range` and `switch`):
+
+| Channel | Voltage range | Step | Typical use |
+|---|---|---|---|
+| `DCDC1` | 1500–3400 mV | 100 mV | ESP32 core power |
+| `DCDC2` | 500–1540 mV | 10/20 mV | CPU/core (rarely used) |
+| `DCDC3` | 2000–3500 mV | 25 mV | LCD backlight |
+| `ALDO1` | 500–3500 mV | 100 mV | General purpose |
+| `ALDO2` | 500–3500 mV | 100 mV | General purpose |
+| `ALDO3` | 500–3500 mV | 100 mV | General purpose |
+| `DLDO2` | 1800–3300 mV | 100 mV | Peripheral bus / display |
+| `DLDO3` | 1800–3300 mV | 100 mV | Vibration motor / touch |
+
+## M5Stack Core2 example
+
 The below example was for [M5Stack Core2](https://docs.m5stack.com/en/core/core2) (SKU: K010, original version)
 
 ```yaml
@@ -246,3 +274,12 @@ switch:
       name: "Vibration Motor"
 
 ```
+
+## M5Stack Tough example
+
+See [examples/kit/m5stack-tough.yaml](../../../examples/kit/m5stack-tough.yaml) for a complete configuration for the [M5Stack Tough](https://docs.m5stack.com/en/core/tough) (SKU: K034).
+
+Key differences from Core2:
+- No vibration motor — `DLDO3` is used for touch-panel + display logic power (3000 mV) instead
+- `DLDO2` at 3300 mV (peripheral bus)
+- `vibration_motor` switch not present
