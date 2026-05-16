@@ -32,6 +32,7 @@ POWER_CHANNELS = {
     "ALDO4": PowerChannel.ALDO4,
     "DLDO2": PowerChannel.DLDO2,
     "DLDO3": PowerChannel.DLDO3,
+    "EXTEN": PowerChannel.EXTEN,
 }
 
 CONFIG_SCHEMA = cv.typed_schema(

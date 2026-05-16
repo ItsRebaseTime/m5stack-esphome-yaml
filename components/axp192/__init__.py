@@ -18,6 +18,7 @@ AUTO_LOAD = ["gpio_expander"]
 
 CONF_AXP192_ID = "axp192_id"
 CONF_AXP192 = "axp192"
+CONF_POWER_DOWN_VOLTAGE = "power_down_voltage"
 
 axp192_ns = cg.esphome_ns.namespace("axp192")
 AXP192 = axp192_ns.class_("AXP192", cg.Component, i2c.I2CDevice)
@@ -28,10 +29,20 @@ BASE_SCHEMA = cv.Schema({
     cv.GenerateID(CONF_AXP192_ID): cv.use_id(AXP192),
 })
 
+def _validate_power_down_voltage(value):
+    value = cv.uint16_t(value)
+    if value % 100 != 0:
+        raise cv.Invalid("power_down_voltage must be a multiple of 100 mV")
+    if value < 2600 or value > 3300:
+        raise cv.Invalid("power_down_voltage must be between 2600 and 3300 mV")
+    return value
+
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(AXP192)
+            cv.GenerateID(): cv.declare_id(AXP192),
+            cv.Optional(CONF_POWER_DOWN_VOLTAGE, default=2900): _validate_power_down_voltage,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -74,3 +85,4 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
+    cg.add(var.set_power_down_voltage(config[CONF_POWER_DOWN_VOLTAGE]))

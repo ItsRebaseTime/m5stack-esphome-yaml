@@ -17,6 +17,7 @@ enum PowerChannel {
     ALDO4,
     DLDO2,
     DLDO3,
+    EXTEN,
 };
 
 class AXP192OutputBase : public Parented<AXP192> {

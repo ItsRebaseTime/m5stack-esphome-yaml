@@ -164,6 +164,7 @@ public:
     // System Power Down Voltage
     bool setSysPowerDownVoltage(uint16_t millivolt);
     uint16_t getSysPowerDownVoltage(void);
+    void set_power_down_voltage(uint16_t millivolt) { this->power_down_voltage_ = millivolt; }
 
     // PWROK/Sequence/Delay
     void enablePwrOk();
@@ -211,6 +212,11 @@ public:
     uint16_t getDC1Voltage(void);
     void setDC1LowVoltagePowerDown(bool en);
     bool getDC1LowVoltagePowerDownEn();
+
+    // EXTEN (external 5 V boost converter / IPSBUS)
+    bool isEnableExten(void);
+    bool enableExten(void);
+    bool disableExten(void);
 
     // DCDC2
     bool isEnableDC2(void);
@@ -381,6 +387,7 @@ private:
 
     uint8_t __chipModel{0};
     uint32_t __protectedMask{0};
+    uint16_t power_down_voltage_{2900};
 
 };
     

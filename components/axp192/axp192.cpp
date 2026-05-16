@@ -75,6 +75,9 @@ void AXP192::AXP192::setup()
     // Set charge cut-off voltage
     this->setChargeTargetVoltage(XPOWERS_AXP192_CHG_VOL_4V1);
 
+    // Set battery power-down voltage
+    this->setSysPowerDownVoltage(this->power_down_voltage_);
+
     // Set the watchdog trigger event type
     // this->setWatchdogConfig(XPOWERS_AXP192_WDT_IRQ_TO_PIN);
     // Set watchdog timeout
@@ -974,6 +977,14 @@ void AXP192::setDC1LowVoltagePowerDown(bool en)
 bool AXP192::getDC1LowVoltagePowerDownEn(){ return getRegisterBit(XPOWERS_AXP192_DC_OVP_UVP_CTRL, 0); }
 
 /*
+ * EXTEN — external 5 V boost converter / IPSBUS (register 0x10, bit 2)
+ * Controls the M5GO Bottom2 5 V rail that powers SK6812 LEDs.
+ */
+bool AXP192::isEnableExten(void){ return getRegisterBit(XPOWERS_AXP192_DC2_ONOFF_DVM_CTRL, 2); }
+bool AXP192::enableExten(void)  { return setRegisterBit(XPOWERS_AXP192_DC2_ONOFF_DVM_CTRL, 2); }
+bool AXP192::disableExten(void) { return clrRegisterBit(XPOWERS_AXP192_DC2_ONOFF_DVM_CTRL, 2); }
+
+/*
  * Power control DCDC2 functions
  */
 bool AXP192::isEnableDC2(void){ return getRegisterBit(XPOWERS_AXP192_DC2_ONOFF_DVM_CTRL, 0); } //was 1
@@ -1547,7 +1558,7 @@ float AXP192::getBattVoltage(void)
     if (!isBatteryConnect()) {
         return 0;
     }
-    return readRegisterH8L4(XPOWERS_AXP192_ADC_DATA_BATTVH, XPOWERS_AXP192_ADC_DATA_BATTVL)/1000.0;
+    return readRegisterH8L4(XPOWERS_AXP192_ADC_DATA_BATTVH, XPOWERS_AXP192_ADC_DATA_BATTVL)*XPOWERS_AXP192_ADC_SCALE_BATTV/1000.0;
 }
 
 int AXP192::getBatteryPercent(void)
@@ -1566,37 +1577,17 @@ ESP_LOGD(TAG, "BattVoltage %u mV, %% %u", batteryVoltage, batteryPercent);
 
 int AXP192::getScaledBatteryPercent(uint16_t discharge_0pc_voltage, uint16_t discharge_100pc_voltage, uint16_t charge_0pc_current, uint16_t charge_100pc_current)
 {
-    int batteryPercent = 0;
     if (!isBatteryConnect()) {
         return -1; // Battery not connected so Percent not available
     }
-    // No simple register so we read battery voltage and estimate % charge from that
     uint16_t batteryVoltage = 1000.0*getBattVoltage(); //mV
-    uint16_t batteryChargeCurrent = 1000.0*getBattChargeCurrent(); //mA
-    if (isCharging()) {
-        // Use charging current as indicator of state of charge
-        if (batteryChargeCurrent <= charge_100pc_current){
-            batteryPercent = 100;
-        } else {
-            if (batteryChargeCurrent >= charge_0pc_current){
-                batteryPercent = 0;
-            } else {
-                batteryPercent = ((charge_0pc_current - batteryChargeCurrent)*100)/(charge_0pc_current - charge_100pc_current);
-            }
-        }
-    } else {
-        if (batteryVoltage >= discharge_100pc_voltage) {
-            batteryPercent = 100; //Consider fully charged, should also check that charging is off
-        } else {
-            if (batteryVoltage <= discharge_0pc_voltage) {
-                batteryPercent = 0;
-            } else {
-                batteryPercent = ((batteryVoltage - discharge_0pc_voltage)*100)/(discharge_100pc_voltage - discharge_0pc_voltage);
-            }
-        }
+    if (batteryVoltage >= discharge_100pc_voltage) {
+        return 100;
     }
-
-    return batteryPercent;
+    if (batteryVoltage <= discharge_0pc_voltage) {
+        return 0;
+    }
+    return ((batteryVoltage - discharge_0pc_voltage)*100)/(discharge_100pc_voltage - discharge_0pc_voltage);
 }
 
 /*

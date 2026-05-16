@@ -39,6 +39,9 @@ void AXP192OutputBase::apply_channel(PowerChannel channel, uint16_t voltage) {
       this->parent_->setDC3Voltage(voltage);
       this->parent_->enableDC3();
       break;
+    case PowerChannel::EXTEN:
+      this->parent_->enableExten();
+      break;
     default:
       ESP_LOGW(TAG, "Unknown channel: %d", channel);
       break;
@@ -55,6 +58,7 @@ void AXP192OutputBase::disable_channel(PowerChannel channel) {
     case PowerChannel::DCDC1: this->parent_->disableDC1(); break;
     case PowerChannel::DCDC2: this->parent_->disableDC2(); break;
     case PowerChannel::DCDC3: this->parent_->disableDC3(); break;
+    case PowerChannel::EXTEN: this->parent_->disableExten(); break;
     default:
       ESP_LOGW(TAG, "Unknown channel: %d", channel);
       break;
