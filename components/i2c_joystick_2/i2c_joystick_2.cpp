@@ -1,5 +1,7 @@
 #include "i2c_joystick_2.h"
 
+#include <cstdio>
+#include <cstdlib>
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -13,6 +15,7 @@ static const uint8_t JOYSTICK2_BUTTON_REG = 0x20;
 static const uint8_t JOYSTICK2_OFFSET_ADC_VALUE_12BITS_REG = 0x50;
 static const uint8_t JOYSTICK2_OFFSET_ADC_VALUE_8BITS_REG = 0x60;
 static const uint8_t JOYSTICK2_FIRMWARE_VERSION_REG = 0xFE;
+static const uint8_t JOYSTICK2_I2C_ADDRESS_REG = 0xFF;
 static const uint8_t JOYSTICK2_LIGHT_B = 0x30;
 static const uint8_t JOYSTICK2_LIGHT_G = 0x31;
 static const uint8_t JOYSTICK2_LIGHT_R = 0x32;
@@ -152,6 +155,62 @@ bool I2CJoystick2Component::read_i8_(uint8_t reg, int8_t *value) {
   *value = static_cast<int8_t>(raw);
   return true;
 }
+
+bool I2CJoystick2Component::read_current_i2c_address(uint8_t *addr) {
+  return this->read_u8_(JOYSTICK2_I2C_ADDRESS_REG, addr);
+}
+
+void I2CJoystick2Component::set_pending_address(const std::string &addr_str) {
+  this->pending_address_ = addr_str;
+}
+
+bool I2CJoystick2Component::apply_pending_address() {
+  if (this->pending_address_.empty()) {
+    ESP_LOGW(TAG, "No address set in text field");
+    return false;
+  }
+
+  const char *str = this->pending_address_.c_str();
+  const char *parse_start = (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) ? str + 2 : str;
+  char *end = nullptr;
+  long val = strtol(parse_start, &end, 16);
+
+  if (end == parse_start || *end != '\0' || val < 0x08 || val > 0x77) {
+    ESP_LOGW(TAG, "Invalid I2C address '%s': must be hex 08-77", str);
+    return false;
+  }
+
+  uint8_t new_addr = static_cast<uint8_t>(val);
+  if (!this->write_u8_(JOYSTICK2_I2C_ADDRESS_REG, new_addr)) {
+    ESP_LOGW(TAG, "Failed to write I2C address 0x%02X", new_addr);
+    return false;
+  }
+
+  ESP_LOGI(TAG, "I2C address set to 0x%02X (takes effect on next power cycle)", new_addr);
+  return true;
+}
+
+#ifdef USE_TEXT
+void I2CJoystick2AddressText::setup() {
+  uint8_t addr = 0;
+  if (this->parent_->read_current_i2c_address(&addr)) {
+    char buf[5];
+    snprintf(buf, sizeof(buf), "0x%02X", addr);
+    this->publish_state(buf);
+  }
+}
+
+void I2CJoystick2AddressText::control(const std::string &value) {
+  this->parent_->set_pending_address(value);
+  this->publish_state(value);
+}
+#endif  // USE_TEXT
+
+#ifdef USE_BUTTON
+void I2CJoystick2AddressButton::press_action() {
+  this->parent_->apply_pending_address();
+}
+#endif  // USE_BUTTON
 
 void I2CJoystick2Component::dump_config() {
   ESP_LOGCONFIG(TAG, "I2C Joystick2:");

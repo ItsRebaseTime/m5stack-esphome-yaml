@@ -5,6 +5,14 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/core/component.h"
 
+#ifdef USE_TEXT
+#include "esphome/components/text/text.h"
+#endif
+
+#ifdef USE_BUTTON
+#include "esphome/components/button/button.h"
+#endif
+
 namespace esphome {
 namespace i2c_joystick_2 {
 
@@ -35,6 +43,10 @@ class I2CJoystick2Component : public Component, public i2c::I2CDevice {
   bool read_button_pressed(bool *pressed);
   void write_rgb_channel(RGBChannel channel, uint8_t value);
 
+  bool read_current_i2c_address(uint8_t *addr);
+  void set_pending_address(const std::string &addr_str);
+  bool apply_pending_address();
+
  protected:
   bool read_u8_(uint8_t reg, uint8_t *value);
   bool read_le_u16_(uint8_t reg, uint16_t *value);
@@ -43,6 +55,7 @@ class I2CJoystick2Component : public Component, public i2c::I2CDevice {
   bool write_u8_(uint8_t reg, uint8_t value);
 
   uint8_t firmware_version_{0};
+  std::string pending_address_{""};
 };
 
 class I2CJoystick2Sensor : public sensor::Sensor, public PollingComponent {
@@ -71,6 +84,29 @@ class I2CJoystick2BinarySensor : public binary_sensor::BinarySensor, public Poll
  protected:
   I2CJoystick2Component *parent_{nullptr};
 };
+
+#ifdef USE_TEXT
+class I2CJoystick2AddressText : public text::Text, public Component {
+ public:
+  void set_parent(I2CJoystick2Component *parent) { this->parent_ = parent; }
+  void setup() override;
+  void control(const std::string &value) override;
+
+ protected:
+  I2CJoystick2Component *parent_{nullptr};
+};
+#endif  // USE_TEXT
+
+#ifdef USE_BUTTON
+class I2CJoystick2AddressButton : public button::Button {
+ public:
+  void set_parent(I2CJoystick2Component *parent) { this->parent_ = parent; }
+  void press_action() override;
+
+ protected:
+  I2CJoystick2Component *parent_{nullptr};
+};
+#endif  // USE_BUTTON
 
 }  // namespace i2c_joystick_2
 }  // namespace esphome

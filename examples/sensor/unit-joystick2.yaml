@@ -86,3 +86,18 @@ light:
     red: red_output
     green: green_output
     blue: blue_output
+
+# Enter a new I2C address as hex (e.g. "0x63" or "63").
+# Valid range: 0x08–0x77. Default address is 0x63.
+# The new address takes effect after power cycling the device.
+text:
+  - platform: i2c_joystick_2
+    i2c_joystick_2_id: joystick2
+    name: "Joystick2 I2C Address"
+    id: joystick2_i2c_address
+
+button:
+  - platform: i2c_joystick_2
+    i2c_joystick_2_id: joystick2
+    name: "Joystick2 Set I2C Address"
+    id: joystick2_set_address
